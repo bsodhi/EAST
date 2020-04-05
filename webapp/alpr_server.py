@@ -34,7 +34,10 @@ Path(UPLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-logging.basicConfig(filename='alpr.log', level=logging.INFO)
+logging.basicConfig(filename='alpr.log',
+                    level=logging.INFO, 
+                    format='%(asctime)s %(levelname)s:: %(message)s',
+                    datefmt='%d-%m-%Y@%I:%M:%S %p')
 
 TPE = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
@@ -135,6 +138,7 @@ def _get_frames(client_id):
                   (client_id,))
         return c.fetchall()
 
+
 def _get_frame(id):
     with sqlite3.connect('app.db') as conn:
         c = conn.cursor()
@@ -230,7 +234,8 @@ def _extract_boxes(img, boxes, out_dir):
             bx = box_rec["box"]
             pad = 10
             logging.info("Padding by {0}".format(pad))
-            roi = img[bx[0][1] - pad : bx[2][1] + pad, bx[0][0] - pad : bx[2][0] + pad]
+            roi = img[bx[0][1] - pad: bx[2][1] +
+                      pad, bx[0][0] - pad: bx[2][0] + pad]
             #roi = img[int(line["y0"]):int(line["y2"]), int(line["x0"]):int(line["x2"])]
             out_img = os.path.join(out_dir, "box_{0}.jpg".format(idx))
             #cv2.imwrite(out_img, roi)
@@ -243,7 +248,8 @@ def _extract_boxes(img, boxes, out_dir):
 
 
 def _process_image(task_type, file_path, login_id):
-    logging.info("Processing file {0} for task {1}".format(file_path, task_type))
+    logging.info("Processing file {0} for task {1}".format(
+        file_path, task_type))
     try:
         task_dir = file_path[:-len("input_frame.jpg")]
         Path(task_dir).mkdir(parents=True, exist_ok=True)
@@ -269,13 +275,15 @@ def _process_image(task_type, file_path, login_id):
         elif task_type == "alpr":
             _invoke_alpr_api(file_path, task_dir, task_type)
         elif task_type == "hyb":
-            #TODO: Try detecting with both of the above
+            # TODO: Try detecting with both of the above
             _invoke_alpr_api(file_path, task_dir, "alpr")
         else:
             logging.error("Invalid task type supplied: {}".format(task_type))
 
     except Exception as ex:
-        logging.exception("Error occurred when processing image {}".format(file_path))
+        logging.exception(
+            "Error occurred when processing image {}".format(file_path))
+
 
 def _invoke_alpr_api(file_path, out_dir, task_type):
     logging.info("Starting task {0} in file: {1}".format(task_type, file_path))
@@ -283,10 +291,10 @@ def _invoke_alpr_api(file_path, out_dir, task_type):
     r = requests.post(CONFIG["alpr_api_url"], json=data)
     if r.status_code != requests.codes.ok:
         logging.error("API service failed to process request. "+r.text)
-        _update_frame(file_path, "FIN", r.text)
+        _update_frame(file_path, "ERR", r.text)
     else:
         logging.info("API service result: {0}".format(r.text))
-        _update_frame(file_path, "ERR", r.text)
+        _update_frame(file_path, "FIN", r.text)
 
 
 @app.route('/images/<int:id>')
@@ -297,6 +305,7 @@ def base_static(id):
         return send_file(row[2])
     else:
         logging.error("No row found for ID {}".format(id))
+
 
 @app.route('/home', methods=['GET', 'POST'])
 @auth_check
@@ -329,7 +338,8 @@ def home():
                 file_path = os.path.join(task_dir, "input_frame.jpg")
                 Path(task_dir).mkdir(parents=True, exist_ok=True)
                 file.save(file_path)
-                logging.info("Saved the uploaded file to {0}".format(file_path))
+                logging.info(
+                    "Saved the uploaded file to {0}".format(file_path))
                 _add_frame(login_id, file_path, task_type)
                 TPE.submit(_process_image, task_type, file_path, login_id)
                 return redirect(url_for('show_status'))
