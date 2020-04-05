@@ -1,5 +1,5 @@
 {% extends "secure_base.html" %}
-{% block title %}Upload image{% endblock %}
+{% block title %}Object detection service :: Upload image{% endblock %}
 {% block main %}
 <div class="card">
   <div class="card-header">
@@ -17,12 +17,12 @@
       <div class="form-group">
         <label>Task type:</label>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="task_type" id="rb1" value="ocr">
-          <label class="form-check-label" for="rb1">OCR on text boxes</label>
+          <input class="form-check-input" type="radio" name="task_type" id="rb2" value="alpr" checked>
+          <label class="form-check-label" for="rb2">Unconstrained ALPR</label>
         </div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="task_type" id="rb2" value="alpr">
-          <label class="form-check-label" for="rb2">Unconstrained ALPR</label>
+          <input class="form-check-input" type="radio" name="task_type" id="rb1" value="ocr">
+          <label class="form-check-label" for="rb1">OCR on text boxes</label>
         </div>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="task_type" id="rb3" value="hyb">

@@ -1,5 +1,5 @@
 {% extends "secure_base.html" %}
-{% block title %}Tasks Status{% endblock %}
+{% block title %}Object detection service :: Tasks Status{% endblock %}
 
 {% block main %}
 <div class="card">
@@ -13,7 +13,6 @@
     <p>
       Contents of the task output folders is listed below. 
       You can view or download the files by clicking on respective links.</p>
-    {% endif %}
     <table class="table table-bordered">
       <thead>
         <tr>
@@ -38,6 +37,7 @@
         {%endfor%}
       </tbody>
     </table>
+    {% endif %}
   </div>
 </div>
 
