@@ -1,0 +1,6 @@
+{
+    "ssl_cert_file": "/Users/auser/temp/scraper_cert.pem",
+    "ssl_key_file": "/Users/auser/temp/scraper_key.pem",
+    "host":"0.0.0.0",
+    "port": 5500
+}
