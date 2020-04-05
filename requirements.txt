@@ -6,3 +6,6 @@ plumbum
 numpy
 ipython
 Pillow
+opencv-python
+passlib
+tensorflow

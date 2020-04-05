@@ -1,6 +1,8 @@
 {
-    "ssl_cert_file": "/Users/auser/temp/scraper_cert.pem",
-    "ssl_key_file": "/Users/auser/temp/scraper_key.pem",
+    "ssl_cert_file": "scraper_cert.pem",
+    "ssl_key_file": "scraper_key.pem",
+    "checkpoint_path": "/home/userone/EAST/east_icdar2015_resnet_v1_50_rbox",
     "host":"0.0.0.0",
-    "port": 5500
+    "port": 5400,
+    "alpr_api_url": "http://localhost:8888/api"
 }

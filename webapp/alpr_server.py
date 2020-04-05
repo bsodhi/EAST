@@ -277,7 +277,7 @@ def _process_image(task_type, file_path, login_id):
 def _invoke_alpr_api(file_path, out_dir, task_type):
     logging.info("Starting task {0} in file: {1}".format(task_type, file_path))
     data = {"task_dir": out_dir, "task_type": task_type}
-    r = requests.post("http://localhost:8888/api", json=data)
+    r = requests.post(CONFIG["alpr_api_url"], json=data)
     if r.status_code != requests.codes.ok:
         logging.error("API service failed to process request. "+r.text)
     else:
