@@ -268,6 +268,9 @@ def _process_image(task_type, file_path, login_id):
                         "Failed to close the status for file {}".format(file_path))
         elif task_type == "alpr":
             _invoke_alpr_api(file_path, task_dir, task_type)
+        elif task_type == "hyb":
+            #TODO: Try detecting with both of the above
+            _invoke_alpr_api(file_path, task_dir, task_type)
         else:
             logging.error("Invalid task type supplied: {}".format(task_type))
 

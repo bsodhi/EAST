@@ -17,11 +17,11 @@
       <thead>
         <tr>
           <th>S#</th>
-          <th>File</th>
-          <th>Task type</th>
+          <th>Image file</th>
           <th>Received on</th>
           <th>Status</th>
-          <th>Details</th>
+          <th>Detection mode</th>
+          <th>Detected text</th>
         </tr>
       </thead>
       <tbody>
@@ -29,9 +29,9 @@
         <tr>
           <td>{{loop.index}}</td>
           <td><img src="/images/{{row[0]}}" style="max-width: 250px;"/></td>
-          <td>{{row[5]}}</td>
           <td>{{row[1]}}</td>
           <td>{{row[2]}}</td>
+          <td>{{row[5]}}</td>
           <td>{{row[3]}}</td>
         </tr>
         {%endfor%}

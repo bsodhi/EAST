@@ -9,6 +9,7 @@ import json
 import functools
 import logging
 import collections
+from imutils import contours
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -86,6 +87,7 @@ def get_predictor(checkpoint_path):
             boxes = boxes[:, :8].reshape((-1, 4, 2))
             boxes[:, :, 0] /= ratio_w
             boxes[:, :, 1] /= ratio_h
+            (boxes, boundingBoxes) = contours.sort_contours(boxes, method="top-to-bottom")
 
         duration = time.time() - start_time
         timer['overall'] = duration
