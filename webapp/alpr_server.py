@@ -270,7 +270,7 @@ def _process_image(task_type, file_path, login_id):
             _invoke_alpr_api(file_path, task_dir, task_type)
         elif task_type == "hyb":
             #TODO: Try detecting with both of the above
-            _invoke_alpr_api(file_path, task_dir, task_type)
+            _invoke_alpr_api(file_path, task_dir, "alpr")
         else:
             logging.error("Invalid task type supplied: {}".format(task_type))
 
