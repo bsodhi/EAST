@@ -294,8 +294,6 @@ def _invoke_alpr_api(file_path, out_dir, task_type):
 def base_static(id):
     row = _get_frame(id)
     if row:
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
         return send_file(row[2])
     else:
         logging.error("No row found for ID {}".format(id))
