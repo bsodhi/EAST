@@ -283,8 +283,10 @@ def _invoke_alpr_api(file_path, out_dir, task_type):
     r = requests.post(CONFIG["alpr_api_url"], json=data)
     if r.status_code != requests.codes.ok:
         logging.error("API service failed to process request. "+r.text)
+        _update_frame(file_path, "FIN", r.text)
     else:
         logging.info("API service result: {0}".format(r.text))
+        _update_frame(file_path, "ERR", r.text)
 
 
 @app.route('/images/<int:id>')
@@ -292,6 +294,8 @@ def _invoke_alpr_api(file_path, out_dir, task_type):
 def base_static(id):
     row = _get_frame(id)
     if row:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
         return send_file(row[2])
     else:
         logging.error("No row found for ID {}".format(id))
