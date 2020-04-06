@@ -1,14 +1,15 @@
 import requests
 import numpy as np
 import cv2
-from flask import Flask, abort, session, redirect, url_for, request, render_template
+from flask import Flask, abort, session, redirect
+from flask import url_for, request, render_template, jsonify
+from flask.helpers import flash, send_file, send_from_directory
+from werkzeug.utils import secure_filename
 from functools import wraps
 from markupsafe import escape
 from passlib.hash import pbkdf2_sha256
 from pathlib import Path
-from flask.helpers import flash, send_file, send_from_directory
 from datetime import datetime as DT
-from werkzeug.utils import secure_filename
 import tempfile
 import io
 import alpr_api
@@ -35,7 +36,7 @@ Path(UPLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 logging.basicConfig(filename='alpr.log',
-                    level=logging.INFO, 
+                    level=logging.INFO,
                     format='%(asctime)s %(levelname)s:: %(message)s',
                     datefmt='%d-%m-%Y@%I:%M:%S %p')
 
@@ -287,14 +288,15 @@ def _process_image(task_type, file_path, login_id):
 
 def _invoke_alpr_api(file_path, out_dir, task_type):
     logging.info("Starting task {0} in file: {1}".format(task_type, file_path))
-    data = {"task_dir": out_dir, "task_type": task_type}
+    data = {"task_dir": out_dir, "task_type": task_type,
+            "callback_url": CONFIG["callback_url"]}
     r = requests.post(CONFIG["alpr_api_url"], json=data)
     if r.status_code != requests.codes.ok:
         logging.error("API service failed to process request. "+r.text)
         _update_frame(file_path, "ERR", r.text)
     else:
         logging.info("API service result: {0}".format(r.text))
-        _update_frame(file_path, "FIN", r.text)
+        _update_frame(file_path, "API", r.text)
 
 
 @app.route('/images/<int:id>')
@@ -305,6 +307,37 @@ def base_static(id):
         return send_file(row[2])
     else:
         logging.error("No row found for ID {}".format(id))
+
+
+@app.route('/apicb', methods=['POST'])
+def api_cb():
+    try:
+        if request.method != 'POST':
+            logging.error("Non-POST request received. Ignoring.")
+            return jsonify(status="ERROR", body="Only POST is supported.")
+        file_path = request.form.get("file_path")
+        text = request.form.get("text")
+        status = request.form.get("status")
+        logging.info("Handling API call back: status={0}, \
+            file_path={1}, text={2}".format(status, file_path, text))
+
+        if not status or not file_path:
+            logging.error("Invalid request: missing required parameters.")
+            return jsonify(status="ERROR", body="status and file_path are mandatory.")
+
+        rows = _update_frame(file_path,
+                             "FIN" if status.upper() == "OK" else "ERR",
+                             text)
+        if rows < 1:
+            msg = "No record found for file: '{}'".format(file_path)
+            logging.error(msg)
+            return jsonify(status="ERROR", body=msg)
+
+        return jsonify(status="OK", body="Record updated successfully.")
+
+    except Exception as ex:
+        logging.exception("Error occurred when handling API callback.")
+        return jsonify(status="ERROR", body="Error occured: "+str(ex))
 
 
 @app.route('/home', methods=['GET', 'POST'])

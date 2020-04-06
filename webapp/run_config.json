@@ -4,5 +4,6 @@
     "checkpoint_path": "/home/userone/EAST/east_icdar2015_resnet_v1_50_rbox",
     "host":"0.0.0.0",
     "port": 5400,
-    "alpr_api_url": "http://localhost:8888/api"
+    "alpr_api_url": "http://localhost:8888/api",
+    "callback_url": "https://localhost:5400/apicb"
 }
