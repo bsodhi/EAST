@@ -226,7 +226,6 @@ def _extract_boxes(img, boxes, out_dir):
     idx = 0
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     for box_rec in boxes["box_info"]:
-        print("BOX IS: "+str(box_rec))
         try:
             if box_rec["score"] < 0.2:
                 logging.info(
@@ -287,16 +286,16 @@ def _process_image(task_type, file_path, login_id):
 
 
 def _invoke_alpr_api(file_path, out_dir, task_type):
-    logging.info("Starting task {0} in file: {1}".format(task_type, file_path))
+    logging.info("Starting task {0} on file: {1}".format(task_type, file_path))
     data = {"task_dir": out_dir, "task_type": task_type,
             "callback_url": CONFIG["callback_url"]}
-    r = requests.post(CONFIG["alpr_api_url"], json=data)
-    if r.status_code != requests.codes.ok:
-        logging.error("API service failed to process request. "+r.text)
-        _update_frame(file_path, "ERR", r.text)
+    jr = requests.post(CONFIG["alpr_api_url"], json=data).json()
+    if jr and jr["status"] != "OK":
+        logging.error("API service failed to process request. "+jr["body"])
+        _update_frame(file_path, "ERR", jr["body"])
     else:
-        logging.info("API service result: {0}".format(r.text))
-        _update_frame(file_path, "API", r.text)
+        logging.info("API service result: {0}".format(jr["body"]))
+        _update_frame(file_path, "API", jr["body"])
 
 
 @app.route('/images/<int:id>')
@@ -315,11 +314,12 @@ def api_cb():
         if request.method != 'POST':
             logging.error("Non-POST request received. Ignoring.")
             return jsonify(status="ERROR", body="Only POST is supported.")
-        file_path = request.form.get("file_path")
-        text = request.form.get("text")
-        status = request.form.get("status")
-        logging.info("Handling API call back: status={0}, \
-            file_path={1}, text={2}".format(status, file_path, text))
+        jr = request.get_json()
+        logging.info("Received API callback: "+str(jr))
+
+        file_path = jr["file_path"]
+        text = jr["text"]
+        status = jr["status"]
 
         if not status or not file_path:
             logging.error("Invalid request: missing required parameters.")
