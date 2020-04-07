@@ -17,22 +17,37 @@
       <thead>
         <tr>
           <th>S#</th>
-          <th>Image file</th>
-          <th>Received on</th>
-          <th>Status</th>
-          <th>Detection mode</th>
-          <th>Detected text</th>
+          <th>Image File</th>
+          <th>Details</th>
         </tr>
       </thead>
       <tbody>
-        {% for row in data %}
+        {% for frame_file, items in data|groupby("frame_file") %}
         <tr>
           <td>{{loop.index}}</td>
-          <td><img src="/images/{{row[0]}}" style="max-width: 250px;"/></td>
-          <td>{{row[1]}}</td>
-          <td>{{row[2]}}</td>
-          <td>{{row[5]}}</td>
-          <td>{{row[3]}}</td>
+          <td><img src="/images/{{items[0]['id']}}" style="max-width: 250px;"/></td>
+          <td>
+            <table>
+              <thead>
+                <tr>
+                  <th>Detection Mode</th>
+                  <th>Status</th>
+                  <th>Received On</th>
+                  <th>Detected Text</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for obj in items %}
+                <tr>
+                  <td>{{ obj["task_type"] }}</td>
+                  <td>{{ obj["status"] }}</td>
+                  <td>{{ obj["received_ts"] }}</td>
+                  <td>{{ obj["detected_text"] }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </td>
         </tr>
         {%endfor%}
       </tbody>

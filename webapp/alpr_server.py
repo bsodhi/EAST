@@ -1,3 +1,10 @@
+import os
+import sys
+# Allows importing from: ../../ MUST COME AT THE TOP
+parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+print("In [{0}], appending [{1}] to system path.".format(__file__, parent))
+sys.path.append(parent)
+
 import requests
 import numpy as np
 import cv2
@@ -22,12 +29,6 @@ import traceback
 import glob
 import logging
 import json
-import os
-import sys
-# Allows importing from: ../../
-parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-print("In [{0}], appending [{1}] to system path.".format(__file__, parent))
-sys.path.append(parent)
 
 
 UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
@@ -70,14 +71,18 @@ def _init_db():
             login_id text NOT NULL UNIQUE, 
             pass_hashed text NOT NULL, full_name text NOT NULL, 
             role text NOT NULL)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS frames
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS frames
             (id INTEGER PRIMARY KEY AUTOINCREMENT, 
             client_id text NOT NULL,
-            frame_file text NOT NULL UNIQUE, 
+            frame_file text NOT NULL, 
             received_ts text NOT NULL,
             status text NOT NULL, 
             task_type text NOT NULL,
-            detected_text text)''')
+            detected_text text)
+            ''')
+        c.execute('''CREATE UNIQUE INDEX IF NOT EXISTS 
+        UI_frames ON frames(frame_file, task_type)''')
         conn.commit()
         logging.info("DB initialized.")
 
@@ -119,18 +124,19 @@ def _add_frame(client_id, frame_file, task_type):
         conn.commit()
 
 
-def _update_frame(frame_file, status, detected_text):
+def _update_frame(task_type, frame_file, status, detected_text):
     with sqlite3.connect('app.db') as conn:
         c = conn.cursor()
         c.execute("""UPDATE frames SET status=?, detected_text=?
-        WHERE frame_file=?""",
-                  (status, detected_text, frame_file))
+        WHERE frame_file=? AND UPPER(task_type)=UPPER(?)""",
+                  (status, detected_text, frame_file, task_type))
         conn.commit()
         return conn.total_changes
 
 
 def _get_frames(client_id):
     with sqlite3.connect('app.db') as conn:
+        conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute("""SELECT id, received_ts, status, 
         detected_text, frame_file, task_type 
@@ -259,24 +265,22 @@ def _process_image(task_type, file_path, login_id):
             boxes = alpr_api.get_predictor(checkpoint_path)(img)
             box_count = _extract_boxes(img, boxes, task_dir)
             if box_count > 0:
-                rc = _update_frame(
-                    file_path, "EXT", "Extracted {} boxes.".format(box_count))
+                rc = _update_frame(task_type, file_path, "EXT",
+                                   "Extracted {} boxes.".format(box_count))
                 if rc > 0:
                     _invoke_alpr_api(file_path, task_dir, task_type)
                 else:
                     logging.error(
                         "Failed to update the frame status in DB for: {}".format(file_path))
             else:
-                rc = _update_frame(file_path, "FIN", "No text box found.")
+                rc = _update_frame(task_type, file_path, "FIN",
+                                   "No text box found.")
                 logging.info("No text box found in file: {}".format(file_path))
                 if rc < 1:
                     logging.error(
                         "Failed to close the status for file {}".format(file_path))
         elif task_type == "alpr":
             _invoke_alpr_api(file_path, task_dir, task_type)
-        elif task_type == "hyb":
-            # TODO: Try detecting with both of the above
-            _invoke_alpr_api(file_path, task_dir, "alpr")
         else:
             logging.error("Invalid task type supplied: {}".format(task_type))
 
@@ -292,10 +296,10 @@ def _invoke_alpr_api(file_path, out_dir, task_type):
     jr = requests.post(CONFIG["alpr_api_url"], json=data).json()
     if jr and jr["status"] != "OK":
         logging.error("API service failed to process request. "+jr["body"])
-        _update_frame(file_path, "ERR", jr["body"])
+        _update_frame(task_type, file_path, "ERR", jr["body"])
     else:
         logging.info("API service result: {0}".format(jr["body"]))
-        _update_frame(file_path, "API", jr["body"])
+        _update_frame(task_type, file_path, "API", jr["body"])
 
 
 @app.route('/images/<int:id>')
@@ -318,6 +322,7 @@ def api_cb():
         logging.info("Received API callback: "+str(jr))
 
         file_path = jr["file_path"]
+        task_type = jr["task_type"]
         text = jr["text"]
         status = jr["status"]
 
@@ -325,7 +330,7 @@ def api_cb():
             logging.error("Invalid request: missing required parameters.")
             return jsonify(status="ERROR", body="status and file_path are mandatory.")
 
-        rows = _update_frame(file_path,
+        rows = _update_frame(task_type, file_path,
                              "FIN" if status.upper() == "OK" else "ERR",
                              text)
         if rows < 1:
@@ -373,8 +378,18 @@ def home():
                 file.save(file_path)
                 logging.info(
                     "Saved the uploaded file to {0}".format(file_path))
-                _add_frame(login_id, file_path, task_type)
-                TPE.submit(_process_image, task_type, file_path, login_id)
+
+                if task_type == "hyb":
+                    task_type = "ocr"
+                    _add_frame(login_id, file_path, task_type)
+                    TPE.submit(_process_image, task_type, file_path, login_id)
+                    
+                    task_type = "alpr"
+                    _add_frame(login_id, file_path, task_type)
+                    TPE.submit(_process_image, task_type, file_path, login_id)
+                else:
+                    _add_frame(login_id, file_path, task_type)
+                    TPE.submit(_process_image, task_type, file_path, login_id)
                 return redirect(url_for('show_status'))
             else:
                 logging.error("File type {0} not allowed!".format(ext))
