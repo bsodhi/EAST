@@ -1,5 +1,4 @@
 Shapely
-Flask
 matplotlib
 scipy
 plumbum
@@ -10,3 +9,4 @@ opencv-python
 passlib
 tensorflow
 imutils
+sanic
