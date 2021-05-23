@@ -28,6 +28,11 @@ import numpy as np
 import requests
 from webapp import api
 
+from PIL import Image
+from vehicle_recognition.color.infer import infer as get_color
+import matplotlib.pyplot as plt
+from vehicle_recognition.vtype.predict import predict as get_vtype
+
 logging.basicConfig(filename='backend.log',
                     level=logging.INFO,
                     format='%(asctime)s %(levelname)s:: %(message)s',
@@ -83,6 +88,15 @@ def process(task_type, file_path, cb_url):
 
         elif task_type == "alpr":
             res = invoke_alpr_api(file_path, task_dir, task_type, cb_url)
+
+        elif task_type == "color":
+            color = get_color(Image.open(file_path))
+            res = ("OK", color)
+
+        elif task_type == "vtype":
+            vtype = get_vtype(plt.imread(file_path))
+            res = ("OK", vtype)
+
         else:
             msg = "Invalid task type supplied: {}".format(task_type)
             res = ("ERROR", msg)
@@ -113,7 +127,11 @@ async def api_handler(req):
     if status == "ERROR":
         return error_reply(msg)
     else:
-        return ok_reply("Request successfully queued.")
+        # vehicle_recognition
+        if task_type == "color" or task_type == "vtype":
+            return ok_reply(msg)
+        else:
+            return ok_reply("Request successfully queued.")
 
 
 if __name__ == "__main__":
