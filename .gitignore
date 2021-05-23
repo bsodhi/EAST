@@ -109,3 +109,10 @@ static/results
 .DS_Store
 **/*/.DS_Store
 */.DS_Store
+
+# ide
+.idea
+
+# model weights
+vehicle_recognition/color/Models
+vehicle_recognition/vtype/models
